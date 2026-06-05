@@ -1,16 +1,12 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import time
+import random
+from collections import deque as dq
 
-# =====================================================
-# GRAFO
-# =====================================================
 
 G = nx.Graph()
 
-# =====================================================
-# CÔMODOS
-# =====================================================
 
 comodos = [
     "QD",
@@ -23,9 +19,10 @@ comodos = [
 
 G.add_nodes_from(comodos)
 
-# =====================================================
-# ESTADO DAS LUZES
-# =====================================================
+qd = {
+    "ligado": True,
+    "limite_potencia": 7000
+}
 
 estado_luzes = {
     "Sala": False,
@@ -35,10 +32,6 @@ estado_luzes = {
     "Lavanderia": False
 }
 
-# =====================================================
-# POTÊNCIA DAS LUZES
-# =====================================================
-
 potencia_luzes = {
     "Sala": 150,
     "Quarto": 150,
@@ -46,10 +39,6 @@ potencia_luzes = {
     "Banheiro": 100,
     "Lavanderia": 120
 }
-
-# =====================================================
-# PERIFÉRICOS
-# =====================================================
 
 perifericos = {
 
@@ -102,9 +91,9 @@ perifericos = {
     }
 }
 
-# =====================================================
-# ARESTAS
-# =====================================================
+tempo_chuveiro = random.randint(1, 20)
+inicio_chuveiro = None
+
 
 G.add_edge("QD", "Sala", distancia=5)
 G.add_edge("QD", "Quarto", distancia=6)
@@ -112,9 +101,6 @@ G.add_edge("QD", "Cozinha", distancia=10)
 G.add_edge("QD", "Banheiro", distancia=4)
 G.add_edge("QD", "Lavanderia", distancia=8)
 
-# =====================================================
-# CONECTANDO PERIFÉRICOS
-# =====================================================
 
 for nome, dados in perifericos.items():
 
@@ -126,9 +112,6 @@ for nome, dados in perifericos.items():
         distancia=1
     )
 
-# =====================================================
-# CONSUMO
-# =====================================================
 
 energia_total = 0
 ultimo_tempo = time.time()
@@ -151,9 +134,6 @@ def calcular_consumo():
 
     return total
 
-# =====================================================
-# MONITORAMENTO
-# =====================================================
 
 def mostrar_consumo():
 
@@ -191,6 +171,12 @@ def mostrar_consumo():
 
     print("\n--------------------------------")
 
+    estado_qd = (
+        "ARMADO" if qd["ligado"] == True
+        else "DESARMADO"
+    )
+    print(f"\nQD: {estado_qd}")
+
     print("LUZES:")
 
     for comodo, ligado in estado_luzes.items():
@@ -221,101 +207,124 @@ def mostrar_consumo():
 
     print("================================\n")
 
-# =====================================================
-# BFS
-# =====================================================
 
 def bfs_energia(inicio, ligar=True, bloqueados=None):
 
-    if bloqueados is None:
+    if not qd["ligado"]:
+        print("QD DESARMADO!")
+        print("Rearme o QD antes de energizar o sistema.")
+        return
 
-        bloqueados = []
-
-    fila = [inicio]
-
+    fila = dq([inicio])
     visitados = set()
 
     print("\n============ BFS ============\n")
+    time.sleep(1)
 
     while fila:
-
-        atual = fila.pop(0)
-
-        # -----------------------------------------
-
-        if atual in bloqueados:
-
-            print(f"{atual}: BLOQUEADO")
-            continue
-
-        # -----------------------------------------
+        atual = fila.popleft()
+        time.sleep(1)
 
         if atual not in visitados:
 
             visitados.add(atual)
-
-            # -------------------------------------
-            # CÔMODOS
-            # -------------------------------------
-
             if atual in estado_luzes:
-
                 estado_luzes[atual] = ligar
-
+                time.sleep(1)
                 estado = (
                     "LIGADA"
                     if ligar
                     else "DESLIGADA"
                 )
-
+                time.sleep(1)
                 print(f"{atual}: {estado}")
-
-            # -------------------------------------
-            # PERIFÉRICOS
-            # -------------------------------------
-
             if atual in perifericos:
-
                 perifericos[atual]["ligado"] = ligar
-
                 estado = (
                     "LIGADO"
                     if ligar
                     else "DESLIGADO"
                 )
-
                 print(f"{atual}: {estado}")
-
-            # -------------------------------------
-            # VIZINHOS
-            # -------------------------------------
+                time.sleep(1)
 
             for vizinho in G.neighbors(atual):
 
-                # impede voltar ao quadro
-
                 if vizinho == "QD":
-
                     continue
 
                 if (
                     vizinho not in visitados
-                    and vizinho not in bloqueados
                 ):
-
                     fila.append(vizinho)
 
     print("\n=============================\n")
 
-# =====================================================
-# DFS
-# =====================================================
+
+def bfs_desligar_qd():
+    qd["ligado"] = False
+
+    fila = dq(["QD"])
+    visitados = set()
+
+    print("\n====== DESARMANDO QD ======")
+
+    while fila:
+        atual = fila.popleft()
+        if atual not in visitados:
+            visitados.add(atual)
+            if atual in estado_luzes:
+                estado_luzes[atual] = False
+                print(f"{atual}: LUZES DESLIGADAS")
+            if atual in perifericos:
+                perifericos[atual]["ligado"] = False
+                print(f"{atual}: PERIFERICO DESLIGADO")
+            for vizinho in G.neighbors(atual):
+                if vizinho not in visitados:
+                    fila.append(vizinho)
+
+    print("\nSOBRECARGA DETECTADA")
+    time.sleep(5)
+    print("QD DESARMADO!")
+    time.sleep(5)
+    print("Toda a residencia foi desligada.")
+    time.sleep(5)
+
+def rearmar_qd():
+    qd["ligado"] = True
+    print("\nQD REARMADO!")
+
+def verificar_sobrecarga():
+
+    if not qd["ligado"]:
+        return 
+    
+    consumo = calcular_consumo()
+
+    if consumo > qd["limite_potencia"]:
+        print("SOBRECARGA DETECTADA")
+
+        print(f"Consumo atual: {consumo} W")
+        print(
+            f"limite do QD: "
+            f"{qd['limite_potencia']} W"
+        )
+
+        bfs_desligar_qd()
+        desenhar_grafo()
+        mostrar_consumo()
+
+def ligar_e_verificar(nome):
+    perifericos[nome]["ligado"] = True
+    verificar_sobrecarga()
+
 
 def dfs_energia(inicio):
 
     visitados = set()
 
     print("\n============ DFS ============\n")
+    time.sleep(1)
 
     def dfs(no):
 
@@ -323,9 +332,6 @@ def dfs_energia(inicio):
 
         print(f"\nVisitando: {no}")
 
-        # -----------------------------------------
-        # CÔMODOS
-        # -----------------------------------------
 
         if no in estado_luzes:
 
@@ -343,9 +349,6 @@ def dfs_energia(inicio):
                 f"{potencia_luzes[no]}W"
             )
 
-        # -----------------------------------------
-        # PERIFÉRICOS
-        # -----------------------------------------
 
         elif no in perifericos:
 
@@ -363,7 +366,6 @@ def dfs_energia(inicio):
                 f"{perifericos[no]['watts']}W"
             )
 
-        # -----------------------------------------
 
         for vizinho in G.neighbors(no):
 
@@ -377,9 +379,6 @@ def dfs_energia(inicio):
 
     return visitados
 
-# =====================================================
-# DESENHO
-# =====================================================
 
 plt.ion()
 
@@ -426,8 +425,14 @@ def desenhar_grafo():
         # quadro
 
         if no == "QD":
+            if qd["ligado"]:
 
-            cores.append("orange")
+
+                cores.append("orange")
+            else:
+
+
+                cores.append("gray")
 
         # cômodos
 
@@ -457,9 +462,6 @@ def desenhar_grafo():
 
             cores.append("white")
 
-    # =================================================
-    # DESENHO
-    # =================================================
 
     nx.draw(
         G,
@@ -470,10 +472,6 @@ def desenhar_grafo():
         node_size=2500,
         font_size=9
     )
-
-    # =================================================
-    # DISTÂNCIAS
-    # =================================================
 
     edge_labels = {}
 
@@ -566,7 +564,10 @@ def menu_sala():
 
         elif op == "3":
 
-            perifericos["TV_Sala"]["ligado"] = True
+            ligar_e_verificar("TV_Sala")
+            desenhar_grafo()
+            mostrar_consumo()
+            verificar_sobrecarga()
 
         elif op == "4":
 
@@ -610,7 +611,10 @@ def menu_quarto():
 
         elif op == "3":
 
-            perifericos["TV_Quarto"]["ligado"] = True
+            ligar_e_verificar("TV_Quarto")
+            desenhar_grafo()
+            mostrar_consumo()
+            verificar_sobrecarga()
 
         elif op == "4":
 
@@ -618,7 +622,10 @@ def menu_quarto():
 
         elif op == "5":
 
-            perifericos["Computador"]["ligado"] = True
+            ligar_e_verificar("Computador")
+            desenhar_grafo()
+            mostrar_consumo()
+            verificar_sobrecarga()
 
         elif op == "6":
 
@@ -656,34 +663,68 @@ def menu_cozinha():
         op = input("Escolha: ")
 
         if op == "1":
+            if not qd["ligado"]:
+                print("QD DESARMADO")
+                continue
 
             estado_luzes["Cozinha"] = True
 
         elif op == "2":
+            if not qd["ligado"]:
+                print("QD DESARMADO")
+                continue
 
             estado_luzes["Cozinha"] = False
 
         elif op == "3":
+            if not qd["ligado"]:
+                print("QD DESARMADO")
+                continue
 
-            perifericos["Geladeira"]["ligado"] = True
+            ligar_e_verificar("Geladeira")
+            desenhar_grafo()
+            mostrar_consumo()
+            verificar_sobrecarga()
 
         elif op == "4":
+            if not qd["ligado"]:
+                print("QD DESARMADO")
+                continue
 
             perifericos["Geladeira"]["ligado"] = False
 
         elif op == "5":
+            if not qd["ligado"]:
+                print("QD DESARMADO")
+                continue
 
-            perifericos["Fogao"]["ligado"] = True
+            ligar_e_verificar("Fogao")
+            desenhar_grafo()
+            mostrar_consumo()
+            verificar_sobrecarga()
 
         elif op == "6":
+            if not qd["ligado"]:
+                print("QD DESARMADO")
+                continue
 
             perifericos["Fogao"]["ligado"] = False
 
         elif op == "7":
+            if not qd["ligado"]:
+                print("QD DESARMADO")
+                continue
 
-            perifericos["Liquidificador"]["ligado"] = True
+            ligar_e_verificar("Liquidificador")
+
+            desenhar_grafo()
+            mostrar_consumo()
+            verificar_sobrecarga()
 
         elif op == "8":
+            if not qd["ligado"]:
+                print("QD DESARMADO")
+                continue
 
             perifericos["Liquidificador"]["ligado"] = False
 
@@ -713,20 +754,44 @@ def menu_banheiro():
         op = input("Escolha: ")
 
         if op == "1":
+            if not qd["ligado"]:
+               print("QD DESARMADO")
+               continue
 
             estado_luzes["Banheiro"] = True
 
         elif op == "2":
+            if not qd["ligado"]:
+                print("QD DESARMADO")
+                continue
 
             estado_luzes["Banheiro"] = False
 
         elif op == "3":
+            if not qd["ligado"]:
+                print("QD DESARMADO")
+                continue
 
-            perifericos["Chuveiro"]["ligado"] = True
+            ligar_e_verificar("Chuveiro")
+            desenhar_grafo()
+            mostrar_consumo()
+            verificar_sobrecarga()
 
+            global inicio_chuveiro
+
+            inicio_chuveiro = time.time()
+
+            print(
+                "\nChuveiro Ligado."
+            )
         elif op == "4":
+            if not qd["ligado"]:
+                print("QD DESARMADO")
+                continue
 
             perifericos["Chuveiro"]["ligado"] = False
+            inicio_chuveiro = None
+            print("\nChuveiro desligado.")
 
         elif op == "0":
 
@@ -754,18 +819,33 @@ def menu_lavanderia():
         op = input("Escolha: ")
 
         if op == "1":
+            if not qd["ligado"]:
+                print("QD DESARMADO")
+                continue
 
             estado_luzes["Lavanderia"] = True
 
         elif op == "2":
+            if not qd["ligado"]:
+                print("QD DESARMADO")
+                continue
 
             estado_luzes["Lavanderia"] = False
 
         elif op == "3":
+            if not qd["ligado"]:
+                print("QD DESARMADO")
+                continue
 
-            perifericos["Maquina_Lavar"]["ligado"] = True
+            ligar_e_verificar("Maquina_Lavar")
+            desenhar_grafo()
+            mostrar_consumo()
+            verificar_sobrecarga()
 
         elif op == "4":
+            if not qd["ligado"]:
+                print("QD DESARMADO")
+                continue
 
             perifericos["Maquina_Lavar"]["ligado"] = False
 
@@ -837,6 +917,7 @@ while True:
     print("\n1 -> Cômodos")
     print("2 -> Menu BFS (Ligar tudo em uma sala)")
     print("3 -> Verificação DFS (Verificacao Ligados ou Desligados)")
+    print("4 -> Rearmar QD")
 
     print("0 -> Sair")
 
@@ -896,12 +977,16 @@ while True:
 
     # =================================================
 
+    elif entrada == "4":
+        rearmar_qd()
+
     elif entrada == "0":
 
         break
 
     desenhar_grafo()
     mostrar_consumo()
+    verificar_sobrecarga()
 
 plt.ioff()
 plt.show()
