@@ -318,6 +318,19 @@ def ligar_e_verificar(nome):
     perifericos[nome]["ligado"] = True
     verificar_sobrecarga()
 
+def verificar_qd():
+
+    if not qd["ligado"]:
+
+        print("\n================================")
+        print("QD DESARMADO!")
+        print("Rearme o QD para ligar cargas.")
+        print("================================\n")
+
+        return False
+
+    return True
+
 
 def dfs_energia(inicio):
 
@@ -555,6 +568,11 @@ def menu_sala():
         op = input("Escolha: ")
 
         if op == "1":
+            if not qd["ligado"]:
+                print("QD DESARMADO")
+                continue
+            
+
 
             estado_luzes["Sala"] = True
 
@@ -563,6 +581,10 @@ def menu_sala():
             estado_luzes["Sala"] = False
 
         elif op == "3":
+            if not qd["ligado"]:
+                print("QD DESARMADO")
+                continue
+            
 
             ligar_e_verificar("TV_Sala")
             desenhar_grafo()
@@ -602,6 +624,9 @@ def menu_quarto():
         op = input("Escolha: ")
 
         if op == "1":
+            if not qd["ligado"]:
+                print("QD DESARMADO")
+                continue
 
             estado_luzes["Quarto"] = True
 
@@ -610,6 +635,9 @@ def menu_quarto():
             estado_luzes["Quarto"] = False
 
         elif op == "3":
+            if not qd["ligado"]:
+                print("QD DESARMADO")
+                continue
 
             ligar_e_verificar("TV_Quarto")
             desenhar_grafo()
@@ -621,6 +649,9 @@ def menu_quarto():
             perifericos["TV_Quarto"]["ligado"] = False
 
         elif op == "5":
+            if not qd["ligado"]:
+                print("QD DESARMADO")
+                continue
 
             ligar_e_verificar("Computador")
             desenhar_grafo()
@@ -666,6 +697,7 @@ def menu_cozinha():
             if not qd["ligado"]:
                 print("QD DESARMADO")
                 continue
+
 
             estado_luzes["Cozinha"] = True
 
@@ -780,6 +812,7 @@ def menu_banheiro():
             global inicio_chuveiro
 
             inicio_chuveiro = time.time()
+            time.sleep(1)
 
             print(
                 "\nChuveiro Ligado."
