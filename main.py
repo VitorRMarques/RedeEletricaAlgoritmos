@@ -331,6 +331,48 @@ def verificar_qd():
 
     return True
 
+def dijkstra_menor_caminho(origem, destino):
+
+    try:
+
+        caminho = nx.shortest_path(
+            G,
+            source=origem,
+            target=destino,
+            weight="distancia"
+        )
+
+        distancia = nx.shortest_path_length(
+            G,
+            source=origem,
+            target=destino,
+            weight="distancia"
+        )
+
+        print("\n========== DIJKSTRA ==========")
+
+        print(f"Origem: {origem}")
+        print(f"Destino: {destino}")
+
+        print(
+            f"\nMenor Caminho:\n"
+            f"{' -> '.join(caminho)}"
+        )
+
+        print(
+            f"\nDistância Total: "
+            f"{distancia} metros"
+        )
+
+        print("==============================\n")
+
+    except nx.NetworkXNoPath:
+
+        print(
+            "\nNão existe caminho "
+            "entre os nós."
+        )
+
 
 def dfs_energia(inicio):
 
@@ -951,6 +993,7 @@ while True:
     print("2 -> Menu BFS (Ligar tudo em uma sala)")
     print("3 -> Verificação DFS (Verificacao Ligados ou Desligados)")
     print("4 -> Rearmar QD")
+    print("5 -> Menor Caminho (Dijkstra)")
 
     print("0 -> Sair")
 
@@ -1012,6 +1055,24 @@ while True:
 
     elif entrada == "4":
         rearmar_qd()
+
+    elif entrada == "5":
+
+        print("\n===== DIJKSTRA =====")
+
+        print("\nNós disponíveis:")
+
+        for no in G.nodes():
+
+            print(no)
+
+        origem = input("\nOrigem: ")
+        destino = input("Destino: ")
+
+        dijkstra_menor_caminho(
+            origem,
+            destino
+        )
 
     elif entrada == "0":
 
